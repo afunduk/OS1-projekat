@@ -17,13 +17,14 @@ PCB::PCBlist *PCB::allpcbHead = 0;
 PCB::PCBlist *PCB::allpcbTail = 0;
 
 PCB::PCB(StackSize stackSz, Time timeSlice, Thread *thread) : stackSize(stackSz), timeSlice(timeSlice), myThread(thread) {
-
+	//predlazem da se odlozi stvaranje stack-a u thread->start() umesto u konstruktoru
 	if (stackSize > 0) {
 
 		stackSize = stackSize / sizeof(unsigned);
 		stack = new unsigned[stackSize];
 
 		stack[stackSize - 1] = 0x200;
+		stack[stackSize - 12] = 0; // bp na vrhu stack-a = 0
 
 #ifndef BCC_BLOCK_IGNORE
 
@@ -86,7 +87,9 @@ void PCB::wrapper() {
 }
 
 void PCB::end() {
-
+#ifndef BCC_BLOCK_IGNORE
+	lock
+#endif
 	PCBlist *tmp, *destroy;
 	// nit je zavrsila - ne treba da se stavi u sheduler
 	running->flag = FINISHED;
@@ -114,6 +117,9 @@ void PCB::end() {
 		running->waitingTail = 0;
 
 	}
+#ifndef BCC_BLOCK_IGNORE
+	unlock
+#endif
 	//promena konteksta
 	dispatch();
 }
@@ -156,15 +162,18 @@ void interrupt PCB::fork() {
 
 	offsetParent = tmpbp;
 	offsetChild = childPCB->sp;
-	stackPointerParent = (unsigned*)MK_FP(tmpss, offsetParent);
-	stackPointerChild = (unsigned*)MK_FP(childPCB->ss, offsetChild);
-	*stackPointerChild = *stackPointerParent - offsetParent + offsetChild;
-
-	offsetParent = *stackPointerParent;
-	offsetChild = *stackPointerChild;
-	stackPointerParent = (unsigned*)MK_FP(tmpss, offsetParent);
-	stackPointerChild = (unsigned*)MK_FP(childPCB->ss, offsetChild);
-	*stackPointerChild = *stackPointerParent - offsetParent + offsetChild;
+	
+	while (1) {
+		stackPointerParent = (unsigned*)MK_FP(tmpss, offsetParent);
+		stackPointerChild = (unsigned*)MK_FP(childPCB->ss, offsetChild);
+		if (*stackPointerParent == 0) {
+			*stackPointerChild = 0;
+			break;
+		}
+		*stackPointerChild = *stackPointerParent - offsetParent + offsetChild;
+		offsetParent = *stackPointerParent;
+		offsetChild = *stackPointerChild;
+	}
 
 #endif
 
