@@ -122,16 +122,10 @@ void dispatch() {
 }
 
 void Thread::exit() {
-#ifndef BCC_BLOCK_IGNORE
-		lock
-#endif
 
 		//cout << "Gasim nit id: " << running->id << endl;
 		if (running->flag != FINISHED) PCB::end();
 
-#ifndef BCC_BLOCK_IGNORE
-		unlock
-#endif
 }
 
 void Thread::waitForForkChildren() {
