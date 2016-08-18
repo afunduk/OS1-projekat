@@ -74,6 +74,7 @@ void interrupt timer(...) {
 								Scheduler::put(ready);
 
 								tmp->sem->sig = 0;    // wait vraca 0
+								tmp->sem->val--;
 
 								if (prevsleeping == 0) tmp->sem->blocked = tmp->sem->blocked->next;
 								else prevsleeping->next = tmpsleeping->next;
