@@ -1,2 +1,2 @@
 # OS1-projekat
-Projekat iz OS1 - 2016.
+Projekat iz OS1 - 2015/16. (ETF)
